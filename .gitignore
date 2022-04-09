@@ -1,0 +1,6 @@
+.env
+.pytest_cache
+.venv/
+.idea/
+*.log
+*.py[cod]
