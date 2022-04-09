@@ -40,7 +40,7 @@ services:
     container_name: nginx_sw
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./index.html:/usr/share/nginx/html/index.html
+      - ./html:/usr/share/nginx/html/
     ports:
       - "80:80"
     depends_on:
