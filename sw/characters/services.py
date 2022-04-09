@@ -7,6 +7,8 @@ from typing import Any
 import petl as etl
 import requests
 from django.conf import settings
+from django.db.models.fields.files import FieldFile
+from rest_framework.serializers import ValidationError
 
 from characters.models import Collection
 
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 CharactersListTyping = list[dict[str, Any]]
 
 
-class StarWarsError(Exception):
+class StarWarsError(ValidationError):
     pass
 
 
@@ -62,17 +64,30 @@ class CharacterETL:
         "homeworld",
     ]
 
-    def save(self, data: CharactersListTyping):
+    def save(self, data: CharactersListTyping) -> str:
         table = etl.fromdicts(data, header=self.header)
 
         file_path = os.path.join(settings.MEDIA_ROOT, f"{uuid.uuid4().hex}.csv")
-        return table.tocsv(file_path)
+        table.tocsv(file_path)
+        return file_path
+
+    def aggregate(
+        self, file: FieldFile, headers: list[str]
+    ) -> list[dict[str, str | int]]:
+        table = etl.fromcsv(file)
+        try:
+            return list(etl.aggregate(table, headers, len).dicts())
+        except etl.FieldSelectionError:
+            raise StarWarsError("Invalid headers")
 
 
 @dataclass
 class CollectionService:
     repo: StarWarsAPI = field(default_factory=StarWarsAPI)
     character_etl: CharacterETL = field(default_factory=CharacterETL)
+
+    def get_collection(self, collection_id: int) -> Collection:
+        return Collection.objects.get(id=collection_id)
 
     def create_collection(self, data: CharactersListTyping) -> Collection:
         csv_file = self.character_etl.save(data)
@@ -95,6 +110,11 @@ class CollectionService:
 
         collection = self.create_collection(data)
         return collection
+
+    def aggregate(
+        self, collection: Collection, headers: list[str]
+    ) -> list[dict[str, str | int]]:
+        return self.character_etl.aggregate(collection.file, headers)
 
     def _fetch_homeworld(self, url: str) -> str:
         response = requests.get(url)
