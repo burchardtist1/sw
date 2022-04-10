@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
@@ -49,6 +48,14 @@ def test_count_invalid_headers(api_client, collection_fixture):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
-@pytest.mark.xfail
-def test_get_collection():
-    pass
+def test_get_collection(api_client, collection_fixture):
+    collection = collection_fixture()
+    response = api_client.get(
+        reverse("collection-details", kwargs=dict(pk=collection.id))
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.data
+    assert data["file_name"]
+    download_url = reverse("download", kwargs=dict(pk=collection.id))
+    assert download_url == data["file_url"]

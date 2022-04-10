@@ -125,7 +125,9 @@ class CollectionService:
     def create_collection(self, table: etl.Table) -> Collection:
         filename = f"{uuid.uuid4().hex}.csv"
         collection = Collection()
-        table.tocsv(collection.file.storage.path(filename))
+        path = collection.file.storage.path(filename)
+        table.tocsv(path)
+        collection.file = path
         collection.save()
         return collection
 

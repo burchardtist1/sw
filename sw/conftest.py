@@ -35,6 +35,10 @@ def collection_fixture(collection_service):
 def memory_source(monkeypatch):
     memory_source = MemorySource()
     setattr(memory_source, "path", lambda _: memory_source)
+    setattr(memory_source, "_committed", None)
+    setattr(memory_source, "save", lambda x, y, save: None)
+    setattr(memory_source, "name", None)
+    setattr(memory_source, "file", None)
     monkeypatch.setattr("petl.io.sources.MemorySource", lambda: memory_source)
 
 
