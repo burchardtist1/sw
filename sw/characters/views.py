@@ -1,12 +1,13 @@
 from django.http import FileResponse
 from rest_framework import status
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
 
-from characters.models import Collection
+from characters.models import Character, Collection
 from characters.serializers import (
+    CharacterSerializer,
     CollectionDetailsSerializer,
     CollectionSerializer,
     CountRequestSerializer,
@@ -75,3 +76,10 @@ class DownloadCSVView(APIView):
         )
 
         return response
+
+
+class CharactersView(ListAPIView):
+    serializer_class = CharacterSerializer
+
+    def get_queryset(self):
+        return Character.objects.filter(collection=self.kwargs["pk"])

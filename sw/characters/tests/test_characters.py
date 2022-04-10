@@ -2,7 +2,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 
-from characters.models import Collection
+from characters.models import Character, Collection
 
 
 def test_fetch(api_client):
@@ -59,3 +59,10 @@ def test_get_collection(api_client, collection_fixture):
     assert data["file_name"]
     download_url = reverse("download", kwargs=dict(pk=collection.id))
     assert download_url == data["file_url"]
+
+
+def test_list_characters(api_client, collection_fixture):
+    collection = collection_fixture()
+    response = api_client.get(reverse("characters", kwargs=dict(pk=collection.id)))
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == Character.objects.count()

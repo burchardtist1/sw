@@ -5,11 +5,13 @@ from typing import Any
 
 import petl as etl
 import requests
+from dateutil import parser
+from django.db import transaction
 from django.db.models.fields.files import FieldFile
 from faker import Faker
 from rest_framework.serializers import ValidationError
 
-from characters.models import Collection
+from characters.models import Character, Collection
 
 # https://stackoverflow.com/questions/24344045/how-can-i-completely-remove-any-logging-from-requests-module-in-python
 logging.getLogger("urllib3").propagate = False
@@ -45,7 +47,7 @@ class StarWarsAPI:
         while next_page:
             response_data = get(next_page)
             result += response_data["results"]
-            next_page = None  # response_data["next"]
+            next_page = response_data["next"]
 
         return result
 
@@ -65,6 +67,7 @@ class InMemoryStarWarsAPI(StarWarsAPI):
                 "birth_year": self.fake.name(),
                 "gender": self.fake.name(),
                 "homeworld": self.fake.name(),
+                "edited": "2014-12-20T21:17:56.891000Z",
             }
             for _ in range(3)
         ]
@@ -122,6 +125,7 @@ class CollectionService:
     def get_collection(self, collection_id: int) -> Collection:
         return Collection.objects.get(id=collection_id)
 
+    @transaction.atomic
     def create_collection(self, table: etl.Table) -> Collection:
         filename = f"{uuid.uuid4().hex}.csv"
         collection = Collection()
@@ -129,6 +133,17 @@ class CollectionService:
         table.tocsv(path)
         collection.file = path
         collection.save()
+
+        characters_create = list()
+        characters_list = table.list()
+        fields = characters_list.pop(0)
+        for row in characters_list:
+            data = dict(zip(fields, row))
+            data["date"] = parser.parse(data["date"]).date()
+            character = Character(collection=collection, **data)
+            characters_create.append(character)
+
+        Character.objects.bulk_create(characters_create)
         return collection
 
     def export(self) -> Collection:

@@ -1,7 +1,7 @@
 from django.urls import reverse
 from rest_framework import serializers
 
-from characters.models import Collection
+from characters.models import Character, Collection
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -32,3 +32,20 @@ class CountRequestSerializer(serializers.Serializer):
 
 class CountResponseSerializer(serializers.Serializer):
     pass
+
+
+class CharacterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Character
+        fields = (
+            "name",
+            "height",
+            "mass",
+            "hair_color",
+            "skin_color",
+            "eye_color",
+            "birth_year",
+            "gender",
+            "homeworld",
+            "date",
+        )
