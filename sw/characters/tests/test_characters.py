@@ -18,7 +18,6 @@ def test_fetch(api_client):
     assert collection.created_at == parse_datetime(data["created_at"])
 
 
-@pytest.mark.xfail
 def test_count(api_client, collection_fixture):
 
     # invalid collection_id
@@ -28,13 +27,18 @@ def test_count(api_client, collection_fixture):
     collection = collection_fixture()
     response = api_client.get(
         reverse("count")
-        + f"?collection_id={collection.id}&headers=homeworld&headers=birth_year"
+        + f"?collection_id={collection.id}&headers=homeworld&headers=mass"
     )
     assert response.status_code == status.HTTP_200_OK
+    assert [all([x["homeworld"], x["mass"], x["value"] == 1]) for x in response.data]
 
-    data = response.data
+    response = api_client.get(
+        reverse("count") + f"?collection_id={collection.id}&headers=height&headers=mass"
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == [{"height": "90", "mass": "100", "value": 3}]
 
-@pytest.mark.xfail
+
 def test_count_invalid_headers(api_client, collection_fixture):
     collection = collection_fixture()
 

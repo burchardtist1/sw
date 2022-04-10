@@ -1,12 +1,10 @@
 import logging
-import os
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
 import petl as etl
 import requests
-from django.conf import settings
 from django.db.models.fields.files import FieldFile
 from faker import Faker
 from rest_framework.serializers import ValidationError
@@ -47,7 +45,7 @@ class StarWarsAPI:
         while next_page:
             response_data = get(next_page)
             result += response_data["results"]
-            next_page = response_data["next"]
+            next_page = None  # response_data["next"]
 
         return result
 
@@ -59,7 +57,7 @@ class InMemoryStarWarsAPI(StarWarsAPI):
         return [
             {
                 "name": self.fake.name(),
-                "height": self.fake.name(),
+                "height": "90",
                 "mass": "100",
                 "hair_color": self.fake.name(),
                 "skin_color": self.fake.name(),
@@ -68,7 +66,8 @@ class InMemoryStarWarsAPI(StarWarsAPI):
                 "gender": self.fake.name(),
                 "homeworld": self.fake.name(),
             }
-        ] * 3
+            for _ in range(3)
+        ]
 
 
 class CharacterETL:
@@ -82,23 +81,37 @@ class CharacterETL:
         "birth_year",
         "gender",
         "homeworld",
+        "edited",
     ]
 
-    def save(self, data: CharactersListTyping) -> str:
+    def transform(self, data: CharactersListTyping) -> etl.Table:
         table = etl.fromdicts(data, header=self.header)
 
-        file_path = os.path.join(settings.MEDIA_ROOT, f"{uuid.uuid4().hex}.csv")
-        table.tocsv(file_path)
-        return file_path
+        table = etl.rename(table, "edited", "date")
+
+        homeworld_urls = etl.facet(table, "homeworld")
+        homeworlds = {x: self._fetch_homeworld(x) for x in homeworld_urls}
+
+        return etl.convert(table, "homeworld", homeworlds)
+
+    def load_table(self, file: FieldFile) -> etl.Table:
+        return etl.fromcsv(file)
 
     def aggregate(
         self, file: FieldFile, headers: list[str]
     ) -> list[dict[str, str | int]]:
-        table = etl.fromcsv(file)
+        table = self.load_table(file)
         try:
             return list(etl.aggregate(table, headers, len).dicts())
         except etl.FieldSelectionError:
             raise StarWarsError("Invalid headers")
+
+    def _fetch_homeworld(self, url: str) -> str:
+        logger.debug(f"get world: {url}")
+        response = requests.get(url)
+        if not response.ok:
+            raise StarWarsError(response.text)
+        return response.json()["name"]
 
 
 @dataclass
@@ -109,35 +122,20 @@ class CollectionService:
     def get_collection(self, collection_id: int) -> Collection:
         return Collection.objects.get(id=collection_id)
 
-    def create_collection(self, data: CharactersListTyping) -> Collection:
-        csv_file = self.character_etl.save(data)
-        return Collection.objects.create(file=csv_file)
+    def create_collection(self, table: etl.Table) -> Collection:
+        filename = f"{uuid.uuid4().hex}.csv"
+        collection = Collection()
+        table.tocsv(collection.file.storage.path(filename))
+        collection.save()
+        return collection
 
     def export(self) -> Collection:
         data = self.repo.get_people()
-
-        homeworlds = dict()
-        for person in data:
-            homeworld_url = person["homeworld"]
-            try:
-                homeworld = homeworlds[homeworld_url]
-            except KeyError:
-                homeworld = self._fetch_homeworld(homeworld_url)
-                logger.debug(f"new world: {homeworld}")
-                homeworlds[homeworld_url] = homeworld
-
-            person["homeworld"] = homeworld
-
-        collection = self.create_collection(data)
+        table = self.character_etl.transform(data)
+        collection = self.create_collection(table)
         return collection
 
     def aggregate(
         self, collection: Collection, headers: list[str]
     ) -> list[dict[str, str | int]]:
         return self.character_etl.aggregate(collection.file, headers)
-
-    def _fetch_homeworld(self, url: str) -> str:
-        response = requests.get(url)
-        if not response.ok:
-            raise StarWarsError(response.text)
-        return response.json()["name"]
