@@ -24,8 +24,8 @@ def test_list_collections(api_client, collection_fixture):
     assert response.status_code == status.HTTP_200_OK
 
     data = response.data
-    assert data['count'] == 2
-    assert {collection_1.id, collection_2.id} == {x['id'] for x in data['results']}
+    assert data["count"] == 2
+    assert {collection_1.id, collection_2.id} == {x["id"] for x in data["results"]}
 
 
 def test_count(api_client, collection_fixture):
