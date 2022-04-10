@@ -8,6 +8,7 @@ import petl as etl
 import requests
 from django.conf import settings
 from django.db.models.fields.files import FieldFile
+from faker import Faker
 from rest_framework.serializers import ValidationError
 
 from characters.models import Collection
@@ -49,6 +50,25 @@ class StarWarsAPI:
             next_page = response_data["next"]
 
         return result
+
+
+class InMemoryStarWarsAPI(StarWarsAPI):
+    fake = Faker()
+
+    def get_people(self) -> CharactersListTyping:
+        return [
+            {
+                "name": self.fake.name(),
+                "height": self.fake.name(),
+                "mass": "100",
+                "hair_color": self.fake.name(),
+                "skin_color": self.fake.name(),
+                "eye_color": self.fake.name(),
+                "birth_year": self.fake.name(),
+                "gender": self.fake.name(),
+                "homeworld": self.fake.name(),
+            }
+        ] * 3
 
 
 class CharacterETL:

@@ -37,4 +37,4 @@ isort:
 format: isort black
 
 test:
-	pytest .
+	$(dc) run --rm backend pytest

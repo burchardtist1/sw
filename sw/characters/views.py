@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 from rest_framework.views import APIView
 
 from characters.models import Collection
@@ -39,7 +40,10 @@ class CountView(APIView):
 
         service = CollectionService()
         data = request_serializer.data
-        collection = service.get_collection(data.pop("collection_id"))
+        try:
+            collection = service.get_collection(data.pop("collection_id"))
+        except Collection.DoesNotExist as e:
+            raise ValidationError from e
 
         response_data = service.aggregate(collection=collection, **data)
         response_serializer = CountResponseSerializer(data=response_data, many=True)
