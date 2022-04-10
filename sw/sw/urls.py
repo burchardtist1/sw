@@ -15,6 +15,16 @@ Including another URLconf
 """
 from django.urls import include, path
 
+from sw.html import collection_count, collection_details, collection_list
+
 urlpatterns = [
-    path("characters/", include("characters.urls")),
+    path("api/characters/", include("characters.urls")),
 ]
+
+html_patterns = [
+    path("html/", collection_list),
+    path("html/collection/<int:pk>/", collection_details),
+    path("html/count/<int:pk>/", collection_count),
+]
+
+urlpatterns += html_patterns

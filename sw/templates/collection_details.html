@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>details</title>
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div class="container">
+      <div id="createdAt">created at:</div>
+      <div id="fileName">file name:</div>
+      <div id="fileUrl"></div>
+      <div><table id="characters"></table></div>
+      <div><button id="more">load more</button></div>
+    </div>
+    <script>
+      $(document).ready(function () {
+        let id = location.pathname.split("/")[3];
+        let nextPage;
+
+        $("#more").click(() => loadMore());
+
+        $.ajax({
+          url: "/api/characters/" + id,
+          method: "GET",
+          success: function (data) {
+            buildCollection(data);
+          },
+          error: function (e) {
+            console.log(e.responseJSON);
+          },
+        });
+
+        $.ajax({
+          url: "/api/characters/list/" + id,
+          method: "GET",
+          success: function (data) {
+            buildCharacters(data, false);
+          },
+          error: function (e) {
+            console.log(e.responseJSON);
+          },
+        });
+      });
+
+      function buildCollection(data) {
+        $("#createdAt").append(data.created_at);
+        $("#fileName").append(data.file_name);
+        $("#fileUrl").html($("<a>", { href: data.file_url }).html("download"));
+      }
+
+      function buildCharacters(data, skipHeader) {
+        let fields = [
+          "name",
+          "height",
+          "mass",
+          "hair_color",
+          "skin_color",
+          "eye_color",
+          "birth_year",
+          "gender",
+          "homeworld",
+          "date",
+        ];
+
+        nextPage = data["next"];
+
+        let table = $("#characters");
+        if (!skipHeader) {
+          let header = $("<tr>");
+          table.append(header);
+          $.each(fields, function (_, field) {
+            header.append($("<th>").html(field));
+          });
+        }
+        $.each(data.results, function (_, item) {
+          let tr = $("<tr>");
+          table.append(tr);
+          $.each(fields, function (_, field) {
+            tr.append($("<td>").html(item[field]));
+          });
+        });
+      }
+
+      function loadMore() {
+        if (nextPage == null) {
+          return;
+        }
+        $.ajax({
+          url: nextPage,
+          method: "GET",
+          success: function (data) {
+            buildCharacters(data, true);
+          },
+          error: function (e) {
+            console.log(e.responseJSON);
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
