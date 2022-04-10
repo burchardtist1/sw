@@ -17,6 +17,17 @@ def test_fetch(api_client):
     assert collection.created_at == parse_datetime(data["created_at"])
 
 
+def test_list_collections(api_client, collection_fixture):
+    collection_1, collection_2 = collection_fixture(), collection_fixture()
+
+    response = api_client.get(reverse("collections"))
+    assert response.status_code == status.HTTP_200_OK
+
+    data = response.data
+    assert data['count'] == 2
+    assert {collection_1.id, collection_2.id} == {x['id'] for x in data['results']}
+
+
 def test_count(api_client, collection_fixture):
 
     # invalid collection_id

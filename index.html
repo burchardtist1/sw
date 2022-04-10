@@ -41,7 +41,7 @@
           url: "/api/characters/",
           method: "GET",
           success: function (data) {
-            $.each(data.results, function (_, item) {
+            $.each(data, function (_, item) {
               addCollection(item);
             });
           },
@@ -53,7 +53,7 @@
 
       function addCollection(data) {
         let td = $("<td>");
-        let link = $("<a>", { href: "/api/collections/" + data.id }).html(
+        let link = $("<a>", { href: '/collection/' + data.id }).html(
           data.created_at
         );
         let row = $("<tr>").html(td.append(link));
