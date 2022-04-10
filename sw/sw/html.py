@@ -1,4 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import redirect, render, resolve_url
+
+
+def index(request):
+    return redirect(resolve_url("html-collections"))
 
 
 def collection_list(request):

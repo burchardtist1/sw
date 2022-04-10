@@ -14,7 +14,7 @@ finally run a server:
 make run
 ```
 
-and go to `localhost:8000`
+and go to `http://localhost`
 
 # Useful commands
 build dockers - `make build`

@@ -155,8 +155,8 @@ class CollectionService:
         return collection
 
     def aggregate(
-        self, collection: Collection, headers: QuerySet[Character]
-    ) -> list[dict[str, str | int]]:
+        self, collection: Collection, headers: list[str]
+    ) -> QuerySet[Character]:
         try:
             return (
                 Character.objects.filter(collection=collection)
