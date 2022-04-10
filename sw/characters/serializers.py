@@ -26,12 +26,7 @@ class CollectionDetailsSerializer(serializers.ModelSerializer):
 
 
 class CountRequestSerializer(serializers.Serializer):
-    collection_id = serializers.IntegerField()
     headers = serializers.ListSerializer(child=serializers.CharField())
-
-
-class CountResponseSerializer(serializers.Serializer):
-    pass
 
 
 class CharacterSerializer(serializers.ModelSerializer):

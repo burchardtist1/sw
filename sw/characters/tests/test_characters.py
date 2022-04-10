@@ -20,30 +20,31 @@ def test_fetch(api_client):
 def test_count(api_client, collection_fixture):
 
     # invalid collection_id
-    response = api_client.get(reverse("count") + "?collection_id=-1")
+    response = api_client.get(reverse("count", kwargs=dict(pk=-1)))
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     collection = collection_fixture()
     response = api_client.get(
-        reverse("count")
-        + f"?collection_id={collection.id}&headers=homeworld&headers=mass"
+        reverse("count", kwargs=dict(pk=collection.id))
+        + f"?headers=homeworld&headers=mass"
     )
     assert response.status_code == status.HTTP_200_OK
-    assert [all([x["homeworld"], x["mass"], x["value"] == 1]) for x in response.data]
+    assert [all([x["homeworld"], x["mass"], x["count"] == 1]) for x in response.data]
 
     response = api_client.get(
-        reverse("count") + f"?collection_id={collection.id}&headers=height&headers=mass"
+        reverse("count", kwargs=dict(pk=collection.id))
+        + f"?headers=height&headers=mass"
     )
     assert response.status_code == status.HTTP_200_OK
-    assert response.data == [{"height": "90", "mass": "100", "value": 3}]
+    assert response.data == [{"height": "90", "mass": "100", "count": 3}]
 
 
 def test_count_invalid_headers(api_client, collection_fixture):
     collection = collection_fixture()
 
     response = api_client.get(
-        reverse("count")
-        + f"?collection_id={collection.id}&headers=homeworld&headers=fail"
+        reverse("count", kwargs=dict(pk=collection.id))
+        + f"?headers=homeworld&headers=fail"
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 

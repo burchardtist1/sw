@@ -11,9 +11,8 @@ from characters.serializers import (
     CollectionDetailsSerializer,
     CollectionSerializer,
     CountRequestSerializer,
-    CountResponseSerializer,
 )
-from characters.services import CollectionService
+from characters.services import CollectionService, StarWarsError
 
 
 class CollectionView(ListCreateAPIView):
@@ -39,11 +38,10 @@ class CollectionDetailsView(APIView):
 
 
 class CountView(APIView):
-    def get(self, request, format=None):
+    def get(self, request, pk, format=None):
         params = request.query_params
         request_serializer = CountRequestSerializer(
             data=dict(
-                collection_id=params.get("collection_id"),
                 headers=params.getlist("headers"),
             )
         )
@@ -52,15 +50,16 @@ class CountView(APIView):
         service = CollectionService()
         data = request_serializer.data
         try:
-            collection = service.get_collection(data.pop("collection_id"))
+            collection = service.get_collection(pk)
         except Collection.DoesNotExist as e:
             raise ValidationError from e
 
-        response_data = service.aggregate(collection=collection, **data)
-        response_serializer = CountResponseSerializer(data=response_data, many=True)
-        response_serializer.is_valid(True)
+        try:
+            response_data = service.aggregate(collection=collection, **data)
+        except StarWarsError as e:
+            raise ValidationError from e
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        return Response(list(response_data), status=status.HTTP_200_OK)
 
 
 class DownloadCSVView(APIView):

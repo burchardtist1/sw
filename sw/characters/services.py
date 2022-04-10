@@ -6,7 +6,9 @@ from typing import Any
 import petl as etl
 import requests
 from dateutil import parser
+from django.core.exceptions import FieldError
 from django.db import transaction
+from django.db.models import Count, QuerySet
 from django.db.models.fields.files import FieldFile
 from faker import Faker
 from rest_framework.serializers import ValidationError
@@ -153,6 +155,13 @@ class CollectionService:
         return collection
 
     def aggregate(
-        self, collection: Collection, headers: list[str]
+        self, collection: Collection, headers: QuerySet[Character]
     ) -> list[dict[str, str | int]]:
-        return self.character_etl.aggregate(collection.file, headers)
+        try:
+            return (
+                Character.objects.filter(collection=collection)
+                .values(*headers)
+                .annotate(count=Count("id"))
+            )
+        except FieldError:
+            raise StarWarsError("Invalid headers")
